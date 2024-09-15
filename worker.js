@@ -1,42 +1,44 @@
-addEventListener('fetch', event => {
-  event.respondWith(handleRequest(event.request))
-})
+import fetch from 'node-fetch';
+import express from 'express';
 
-async function handleRequest(request) {
-  const { searchParams } = new URL(request.url)
-  const state = searchParams.get('state') || getRandomState()
-  let address, name, gender, phone
+//const express = require('express');
+//const fetch = require('node-fetch');
+const app = express();
 
-  for (let i = 0; i < 20; i++) { // Try up to 20 times to get a detailed address
-    const location = getRandomLocationInState(state)
-    const apiUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${location.lat}&lon=${location.lng}&zoom=18&addressdetails=1`
+app.get('/', async (req, res) => {
+  const state = req.query.state || getRandomState();
+  let address, name, gender, phone;
+
+  for (let i = 0; i < 20; i++) {
+    const location = getRandomLocationInState(state);
+    const apiUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${location.lat}&lon=${location.lng}&zoom=18&addressdetails=1`;
 
     const response = await fetch(apiUrl, {
-      headers: { 'User-Agent': 'Cloudflare Worker' }
-    })
-    const data = await response.json()
+      headers: { 'User-Agent': 'Mozilla/5.0 (Node.js)' }
+    });
+    const data = await response.json();
 
     if (data && data.address && data.address.house_number && data.address.road && data.address.city) {
-      address = formatAddress(data.address, state)
-      break
+      address = formatAddress(data.address, state);
+      break;
     }
   }
 
   if (!address) {
-    return new Response('Failed to retrieve detailed address', { status: 500 })
+    return res.status(500).send('Failed to retrieve detailed address');
   }
 
-  const userData = await fetch('https://randomuser.me/api/?nat=us')
-  const userJson = await userData.json()
+  const userData = await fetch('https://randomuser.me/api/?nat=us');
+  const userJson = await userData.json();
   if (userJson && userJson.results && userJson.results.length > 0) {
-    const user = userJson.results[0]
-    name = `${user.name.first} ${user.name.last}`
-    gender = user.gender.charAt(0).toUpperCase() + user.gender.slice(1)
-    phone = getRandomPhoneNumber(state)
+    const user = userJson.results[0];
+    name = `${user.name.first} ${user.name.last}`;
+    gender = user.gender.charAt(0).toUpperCase() + user.gender.slice(1);
+    phone = getRandomPhoneNumber(state);
   } else {
-    name = getRandomName()
-    gender = "Unknown"
-    phone = getRandomPhoneNumber(state)
+    name = getRandomName();
+    gender = "Unknown";
+    phone = getRandomPhoneNumber(state);
   }
 
   const html = `
@@ -159,12 +161,15 @@ async function handleRequest(request) {
     </script>
   </body>
   </html>
-  `
+  `;
 
-  return new Response(html, {
-    headers: { 'content-type': 'text/html;charset=UTF-8' },
-  })
-}
+  res.send(html);
+});
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
+});
 
 function getRandomLocationInState(state) {
   const stateCoordinates = {
@@ -404,7 +409,7 @@ function getStateOptions(selectedState) {
     { full: "Wisconsin", abbr: "WI" },
     { full: "Wyoming", abbr: "WY" }
   ]
-  return states.map(state => 
+  return states.map(state =>
     `<option value="${state.abbr}" ${state.abbr === selectedState ? 'selected' : ''}>${state.full} (${state.abbr})</option>`
   ).join('')
 }
