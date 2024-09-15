@@ -1,0 +1,20 @@
+{
+  "name": "real-us-address-generator",
+  "version": "1.0.0",
+  "description": "This is the Node.js version for https://github.com/chatgptuk/Real-US-Address-Generator.",
+  "main": "worker.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/muiyu/Real-US-Address-Generator.git"
+  },
+  "author": "muiyu",
+  "license": "MIT",
+  "type": "module",
+  "dependencies": {
+    "express": "^4.21.0",
+    "node-fetch": "^3.3.2"
+  }
+}
