@@ -1,6 +1,14 @@
 # Real US Address Generator
 
+***Please do not use this project for illegal purposes!***
+
 This is a simple web application that generates random real US addresses, names, genders, and phone numbers. You can also specify a state to generate addresses from that particular state.
+
+**This repo is a fork from the [origin repo](https://github.com/chatgptuk/Real-US-Address-Generator), and is allows you to run with Node.js instead of Cloudflare Workers.**
+
+By the way, use this repo on Docker is what I really love. You know, as a Perfectionism, I really work on closing off env!
+
+*I just be crazy for configing the development env for my DataScience courses.*
 
 ## Features
 
@@ -21,23 +29,23 @@ This is a simple web application that generates random real US addresses, names,
 
 ## Installation
 
-To use this application, you need to deploy the provided JavaScript code using Cloudflare Workers.
+Please make sure that you have `node` and `npm` on your device. You can use `node --version` and `npm --version` to ensure it.
 
-1. Sign up or log in to your [Cloudflare](https://www.cloudflare.com/) account.
-2. Create a new Cloudflare Worker.
-3. Copy the provided JavaScript code into the Cloudflare Worker script editor.
-4. Save and deploy your Worker.
+1. Use `git clone https://github.com/muiyu/Real-US-Address-Generator.git` to clone this repo
+2. Use `cd Real-US-Address-Generator` to enter the project folder
+3. Use `npm install` to load the dependency
+4. Use `PORT=3000 node worker.js` to run
 
 ## Example
 
 Here's an example of what the application looks like:
 
-<img width="804" alt="截屏2024-08-02 21 57 48" src="https://github.com/user-attachments/assets/4a4f75d7-c766-4b43-90de-094445e8f81f">
+<img width="804" alt="sources" src="https://github.com/user-attachments/assets/4a4f75d7-c766-4b43-90de-094445e8f81f">
 
 
 ## Personal Website
 
-For more information or other projects, visit my personal website: [chatgpt.org.uk](https://chatgpt.org.uk)
+For more information or other projects, you can visit origin author's website: [chatgpt.org.uk](https://chatgpt.org.uk).
 
 ## License
 
