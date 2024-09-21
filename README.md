@@ -4,7 +4,7 @@
 
 This is a simple web application that generates random real US addresses, names, genders, and phone numbers. You can also specify a state to generate addresses from that particular state.
 
-**This repo is a fork from the [origin repo](https://github.com/chatgptuk/Real-US-Address-Generator), and is allows you to run with Node.js instead of Cloudflare Workers.**
+**This repo is a fork from the [origin repo](https://github.com/chatgptuk/Real-US-Address-Generator), and it allows you to run with Node.js instead of Cloudflare Workers.**
 
 By the way, use this repo on Docker is what I really love. You know, as a Perfectionism, I really work on closing off env!
 
