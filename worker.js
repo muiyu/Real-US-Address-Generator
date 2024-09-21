@@ -1,13 +1,13 @@
 import fetch from 'node-fetch';
 import express from 'express';
 
-//const express = require('express');
-//const fetch = require('node-fetch');
 const app = express();
 
 app.get('/', async (req, res) => {
   const state = req.query.state || getRandomState();
-  let address, name, gender, phone;
+  let address, name, gender, phone, country;
+
+  const remoteProvinces = ['NL', 'NT', 'NU', 'YT'] // Remote Canadian Provinces/Territories
 
   for (let i = 0; i < 20; i++) {
     const location = getRandomLocationInState(state);
@@ -18,9 +18,28 @@ app.get('/', async (req, res) => {
     });
     const data = await response.json();
 
-    if (data && data.address && data.address.house_number && data.address.road && data.address.city) {
-      address = formatAddress(data.address, state);
-      break;
+    if (data && data.address) {
+      if (data.address.country_code === 'us') {
+        if (data.address.house_number && data.address.road && data.address.city) {
+          country = 'US';
+          address = formatAddress(data.address, state, country);
+          break;
+        }
+      } else if (data.address.country_code === 'ca') {
+        if (remoteProvinces.includes(state)) {
+          // For remote provinces, allow partial addresses
+          country = 'CA';
+          address = formatAddress(data.address, state, country);
+          break;
+        } else {
+          // For other provinces, require detailed address
+          if (data.address.house_number && data.address.road && data.address.city) {
+            country = 'CA';
+            address = formatAddress(data.address, state, country);
+            break;
+          }
+        }
+      }
     }
   }
 
@@ -28,24 +47,24 @@ app.get('/', async (req, res) => {
     return res.status(500).send('Failed to retrieve detailed address');
   }
 
-  const userData = await fetch('https://randomuser.me/api/?nat=us');
+  const userData = await fetch('https://randomuser.me/api/');
   const userJson = await userData.json();
   if (userJson && userJson.results && userJson.results.length > 0) {
     const user = userJson.results[0];
     name = `${user.name.first} ${user.name.last}`;
     gender = user.gender.charAt(0).toUpperCase() + user.gender.slice(1);
-    phone = getRandomPhoneNumber(state);
+    phone = getRandomPhoneNumber(country, state);
   } else {
     name = getRandomName();
     gender = "Unknown";
-    phone = getRandomPhoneNumber(state);
+    phone = getRandomPhoneNumber(country, state);
   }
 
   const html = `
   <!DOCTYPE html>
   <html>
   <head>
-    <title>Real US Address Generator</title>
+    <title>Real US & Canadian Address Generator</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <style>
       body {
@@ -135,7 +154,7 @@ app.get('/', async (req, res) => {
       <div class="address" onclick="copyToClipboard('${address}')">${address}</div>
       <button class="refresh-btn" onclick="window.location.reload();">Get Another Address</button>
       <div class="state-select">
-        <label for="state">Select State:</label>
+        <label for="state">Select State/Province:</label>
         <select id="state" onchange="changeState(this.value)">
           ${getStateOptions(state)}
         </select>
@@ -173,6 +192,7 @@ app.listen(PORT, () => {
 
 function getRandomLocationInState(state) {
   const stateCoordinates = {
+    // US States
     "AL": [{ lat: 32.377716, lng: -86.300568 }, { lat: 33.520661, lng: -86.802490 }],
     "AK": [{ lat: 61.216583, lng: -149.899597 }, { lat: 58.301598, lng: -134.419998 }],
     "AZ": [{ lat: 33.448376, lng: -112.074036 }, { lat: 34.048927, lng: -111.093735 }],
@@ -222,17 +242,36 @@ function getRandomLocationInState(state) {
     "WA": [{ lat: 47.606209, lng: -122.332069 }, { lat: 47.252876, lng: -122.444290 }],
     "WV": [{ lat: 38.349820, lng: -81.632622 }, { lat: 39.629527, lng: -79.955896 }],
     "WI": [{ lat: 43.073051, lng: -89.401230 }, { lat: 43.038902, lng: -87.906471 }],
-    "WY": [{ lat: 41.140259, lng: -104.820236 }, { lat: 44.276569, lng: -105.507391 }]
+    "WY": [{ lat: 41.140259, lng: -104.820236 }, { lat: 44.276569, lng: -105.507391 }],
+    // Canadian Provinces and Territories
+    "AB": [{ lat: 51.044733, lng: -114.071883 }, { lat: 53.546124, lng: -113.493823 }],
+    "BC": [{ lat: 49.282729, lng: -123.120738 }, { lat: 48.428421, lng: -123.365644 }],
+    "MB": [{ lat: 49.895137, lng: -97.138374 }, { lat: 50.445211, lng: -96.823611 }],
+    "NB": [{ lat: 45.963589, lng: -66.643115 }, { lat: 46.510712, lng: -67.255044 }],
+    "NL": [{ lat: 53.135509, lng: -57.660435 }, { lat: 50.445211, lng: -57.100000 }],
+    "NS": [{ lat: 44.648862, lng: -63.575320 }, { lat: 45.010474, lng: -63.416817 }],
+    "ON": [{ lat: 51.253775, lng: -85.323214 }, { lat: 43.653225, lng: -79.383186 }],
+    "PE": [{ lat: 46.238240, lng: -63.131074 }, { lat: 46.492424, lng: -63.793013 }],
+    "QC": [{ lat: 46.813878, lng: -71.207980 }, { lat: 45.501689, lng: -73.567256 }],
+    "SK": [{ lat: 52.939915, lng: -106.450863 }, { lat: 50.445211, lng: -104.618896 }],
+    "NT": [{ lat: 64.825544, lng: -115.825340 }, { lat: 61.251955, lng: -114.352482 }],
+    "NU": [{ lat: 64.282327, lng: -76.614813 }, { lat: 70.299598, lng: -83.107562 }],
+    "YT": [{ lat: 64.282327, lng: -135.000000 }, { lat: 64.000000, lng: -138.000000 }]
   }
   const coordsArray = stateCoordinates[state]
+  if (!coordsArray) {
+    // Fallback to a default location if state/province not found
+    return { lat: 39.8283, lng: -98.5795 } // Geographic center of the contiguous US
+  }
   const randomCity = coordsArray[Math.floor(Math.random() * coordsArray.length)]
   const lat = randomCity.lat + (Math.random() - 0.5) * 0.1 // Smaller random offset
   const lng = randomCity.lng + (Math.random() - 0.5) * 0.1
   return { lat, lng }
 }
 
-function formatAddress(address, state) {
+function formatAddress(address, state, country) {
   const stateAbbreviations = {
+    // US States
     "Alabama": "AL",
     "Alaska": "AK",
     "Arizona": "AZ",
@@ -282,14 +321,41 @@ function formatAddress(address, state) {
     "Washington": "WA",
     "West Virginia": "WV",
     "Wisconsin": "WI",
-    "Wyoming": "WY"
+    "Wyoming": "WY",
+    // Canadian Provinces and Territories
+    "Alberta": "AB",
+    "British Columbia": "BC",
+    "Manitoba": "MB",
+    "New Brunswick": "NB",
+    "Newfoundland and Labrador": "NL",
+    "Nova Scotia": "NS",
+    "Ontario": "ON",
+    "Prince Edward Island": "PE",
+    "Quebec": "QC",
+    "Saskatchewan": "SK",
+    "Northwest Territories": "NT",
+    "Nunavut": "NU",
+    "Yukon": "YT"
   }
   const stateAbbr = stateAbbreviations[address.state] || state
-  return `${address.house_number} ${address.road}, ${address.city}, ${stateAbbr} ${address.postcode}`
+  let formattedAddress = ''
+
+  if (address.house_number && address.road && address.city) {
+    if (country === 'US') {
+      formattedAddress = `${address.house_number} ${address.road}, ${address.city}, ${stateAbbr} ${address.postcode}, United States`
+    } else if (country === 'CA') {
+      formattedAddress = `${address.house_number} ${address.road}, ${address.city}, ${stateAbbr} ${address.postcode}, Canada`
+    }
+  } else {
+    // For partial addresses in remote provinces
+    formattedAddress = `${address.city}, ${stateAbbr} ${address.postcode}, ${country === 'US' ? 'United States' : 'Canada'}`
+  }
+
+  return formattedAddress
 }
 
-function getRandomPhoneNumber(state) {
-  const areaCodes = {
+function getRandomPhoneNumber(country, state) {
+  const areaCodesUS = {
     "AL": ["205", "251", "256", "334", "938"],
     "AK": ["907"],
     "AZ": ["480", "520", "602", "623", "928"],
@@ -341,7 +407,30 @@ function getRandomPhoneNumber(state) {
     "WI": ["262", "414", "534", "608", "715", "920"],
     "WY": ["307"]
   }
-  const areaCode = areaCodes[state][Math.floor(Math.random() * areaCodes[state].length)]
+
+  const areaCodesCanada = {
+    "AB": ["403", "587", "825"],
+    "BC": ["236", "250", "604", "672", "778"],
+    "MB": ["204", "431"],
+    "NB": ["506"],
+    "NL": ["709"],
+    "NS": ["782", "902"],
+    "ON": ["226", "249", "289", "343", "365", "416", "437", "519", "548", "613", "639", "647", "705", "807", "905"],
+    "PE": ["902"],
+    "QC": ["418", "438", "450", "514", "579", "581", "819", "873"],
+    "SK": ["306", "639"],
+    "NT": ["867"],
+    "NU": ["867"],
+    "YT": ["867"]
+  }
+
+  let areaCodeList = []
+  if (country === 'US') {
+    areaCodeList = areaCodesUS[state] || ["000"]
+  } else if (country === 'CA') {
+    areaCodeList = areaCodesCanada[state] || ["000"]
+  }
+  const areaCode = areaCodeList[Math.floor(Math.random() * areaCodeList.length)]
   const exchangeCode = Math.floor(200 + Math.random() * 700).toString().padStart(3, '0')
   const lineNumber = Math.floor(1000 + Math.random() * 9000).toString().padStart(4, '0')
   return `(${areaCode}) ${exchangeCode}-${lineNumber}`
@@ -349,68 +438,89 @@ function getRandomPhoneNumber(state) {
 
 function getRandomState() {
   const states = [
-    "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA",
-    "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK",
-    "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"
+    // US States
+    "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
+    "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA",
+    "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV",
+    "NH", "NJ", "NM", "NY", "NC", "ND", "OH", "OK",
+    "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT",
+    "VT", "VA", "WA", "WV", "WI", "WY",
+    // Canadian Provinces and Territories
+    "AB", "BC", "MB", "NB", "NL", "NS", "ON", "PE", "QC", "SK",
+    "NT", "NU", "YT"
   ]
   return states[Math.floor(Math.random() * states.length)]
 }
 
 function getStateOptions(selectedState) {
   const states = [
-    { full: "Alabama", abbr: "AL" },
-    { full: "Alaska", abbr: "AK" },
-    { full: "Arizona", abbr: "AZ" },
-    { full: "Arkansas", abbr: "AR" },
-    { full: "California", abbr: "CA" },
-    { full: "Colorado", abbr: "CO" },
-    { full: "Connecticut", abbr: "CT" },
-    { full: "Delaware", abbr: "DE" },
-    { full: "Florida", abbr: "FL" },
-    { full: "Georgia", abbr: "GA" },
-    { full: "Hawaii", abbr: "HI" },
-    { full: "Idaho", abbr: "ID" },
-    { full: "Illinois", abbr: "IL" },
-    { full: "Indiana", abbr: "IN" },
-    { full: "Iowa", abbr: "IA" },
-    { full: "Kansas", abbr: "KS" },
-    { full: "Kentucky", abbr: "KY" },
-    { full: "Louisiana", abbr: "LA" },
-    { full: "Maine", abbr: "ME" },
-    { full: "Maryland", abbr: "MD" },
-    { full: "Massachusetts", abbr: "MA" },
-    { full: "Michigan", abbr: "MI" },
-    { full: "Minnesota", abbr: "MN" },
-    { full: "Mississippi", abbr: "MS" },
-    { full: "Missouri", abbr: "MO" },
-    { full: "Montana", abbr: "MT" },
-    { full: "Nebraska", abbr: "NE" },
-    { full: "Nevada", abbr: "NV" },
-    { full: "New Hampshire", abbr: "NH" },
-    { full: "New Jersey", abbr: "NJ" },
-    { full: "New Mexico", abbr: "NM" },
-    { full: "New York", abbr: "NY" },
-    { full: "North Carolina", abbr: "NC" },
-    { full: "North Dakota", abbr: "ND" },
-    { full: "Ohio", abbr: "OH" },
-    { full: "Oklahoma", abbr: "OK" },
-    { full: "Oregon", abbr: "OR" },
-    { full: "Pennsylvania", abbr: "PA" },
-    { full: "Rhode Island", abbr: "RI" },
-    { full: "South Carolina", abbr: "SC" },
-    { full: "South Dakota", abbr: "SD" },
-    { full: "Tennessee", abbr: "TN" },
-    { full: "Texas", abbr: "TX" },
-    { full: "Utah", abbr: "UT" },
-    { full: "Vermont", abbr: "VT" },
-    { full: "Virginia", abbr: "VA" },
-    { full: "Washington", abbr: "WA" },
-    { full: "West Virginia", abbr: "WV" },
-    { full: "Wisconsin", abbr: "WI" },
-    { full: "Wyoming", abbr: "WY" }
+    // US States
+    { full: "Alabama", abbr: "AL", country: "US" },
+    { full: "Alaska", abbr: "AK", country: "US" },
+    { full: "Arizona", abbr: "AZ", country: "US" },
+    { full: "Arkansas", abbr: "AR", country: "US" },
+    { full: "California", abbr: "CA", country: "US" },
+    { full: "Colorado", abbr: "CO", country: "US" },
+    { full: "Connecticut", abbr: "CT", country: "US" },
+    { full: "Delaware", abbr: "DE", country: "US" },
+    { full: "Florida", abbr: "FL", country: "US" },
+    { full: "Georgia", abbr: "GA", country: "US" },
+    { full: "Hawaii", abbr: "HI", country: "US" },
+    { full: "Idaho", abbr: "ID", country: "US" },
+    { full: "Illinois", abbr: "IL", country: "US" },
+    { full: "Indiana", abbr: "IN", country: "US" },
+    { full: "Iowa", abbr: "IA", country: "US" },
+    { full: "Kansas", abbr: "KS", country: "US" },
+    { full: "Kentucky", abbr: "KY", country: "US" },
+    { full: "Louisiana", abbr: "LA", country: "US" },
+    { full: "Maine", abbr: "ME", country: "US" },
+    { full: "Maryland", abbr: "MD", country: "US" },
+    { full: "Massachusetts", abbr: "MA", country: "US" },
+    { full: "Michigan", abbr: "MI", country: "US" },
+    { full: "Minnesota", abbr: "MN", country: "US" },
+    { full: "Mississippi", abbr: "MS", country: "US" },
+    { full: "Missouri", abbr: "MO", country: "US" },
+    { full: "Montana", abbr: "MT", country: "US" },
+    { full: "Nebraska", abbr: "NE", country: "US" },
+    { full: "Nevada", abbr: "NV", country: "US" },
+    { full: "New Hampshire", abbr: "NH", country: "US" },
+    { full: "New Jersey", abbr: "NJ", country: "US" },
+    { full: "New Mexico", abbr: "NM", country: "US" },
+    { full: "New York", abbr: "NY", country: "US" },
+    { full: "North Carolina", abbr: "NC", country: "US" },
+    { full: "North Dakota", abbr: "ND", country: "US" },
+    { full: "Ohio", abbr: "OH", country: "US" },
+    { full: "Oklahoma", abbr: "OK", country: "US" },
+    { full: "Oregon", abbr: "OR", country: "US" },
+    { full: "Pennsylvania", abbr: "PA", country: "US" },
+    { full: "Rhode Island", abbr: "RI", country: "US" },
+    { full: "South Carolina", abbr: "SC", country: "US" },
+    { full: "South Dakota", abbr: "SD", country: "US" },
+    { full: "Tennessee", abbr: "TN", country: "US" },
+    { full: "Texas", abbr: "TX", country: "US" },
+    { full: "Utah", abbr: "UT", country: "US" },
+    { full: "Vermont", abbr: "VT", country: "US" },
+    { full: "Virginia", abbr: "VA", country: "US" },
+    { full: "Washington", abbr: "WA", country: "US" },
+    { full: "West Virginia", abbr: "WV", country: "US" },
+    { full: "Wisconsin", abbr: "WI", country: "US" },
+    { full: "Wyoming", abbr: "WY", country: "US" },
+    // Canadian Provinces and Territories
+    { full: "Alberta", abbr: "AB", country: "CA" },
+    { full: "British Columbia", abbr: "BC", country: "CA" },
+    { full: "Manitoba", abbr: "MB", country: "CA" },
+    { full: "New Brunswick", abbr: "NB", country: "CA" },
+    { full: "Newfoundland and Labrador", abbr: "NL", country: "CA" },
+    { full: "Nova Scotia", abbr: "NS", country: "CA" },
+    { full: "Ontario", abbr: "ON", country: "CA" },
+    { full: "Prince Edward Island", abbr: "PE", country: "CA" },
+    { full: "Quebec", abbr: "QC", country: "CA" },
+    { full: "Saskatchewan", abbr: "SK", country: "CA" },
+    { full: "Northwest Territories", abbr: "NT", country: "CA" },
+    { full: "Nunavut", abbr: "NU", country: "CA" },
+    { full: "Yukon", abbr: "YT", country: "CA" }
   ]
   return states.map(state =>
-    `<option value="${state.abbr}" ${state.abbr === selectedState ? 'selected' : ''}>${state.full} (${state.abbr})</option>`
+    `<option value="${state.abbr}" ${state.abbr === selectedState ? 'selected' : ''}>${state.full} (${state.abbr}) - ${state.country === 'US' ? 'USA' : 'Canada'}</option>`
   ).join('')
 }
-
