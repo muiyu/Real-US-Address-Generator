@@ -24,6 +24,7 @@ app.get('/', async (req, res) => {
           country = 'US';
           address = formatAddress(data.address, state, country);
           break;
+
         }
       } else if (data.address.country_code === 'ca') {
         if (remoteProvinces.includes(state)) {
@@ -434,6 +435,14 @@ function getRandomPhoneNumber(country, state) {
   const exchangeCode = Math.floor(200 + Math.random() * 700).toString().padStart(3, '0')
   const lineNumber = Math.floor(1000 + Math.random() * 9000).toString().padStart(4, '0')
   return `(${areaCode}) ${exchangeCode}-${lineNumber}`
+}
+
+function getRandomName() {
+  const firstNames = ["John", "Jane", "Alex", "Emily", "Chris", "Katie", "Mike", "Laura", "David", "Sarah"]
+  const lastNames = ["Smith", "Johnson", "Brown", "Williams", "Jones", "Garcia", "Miller", "Davis", "Rodriguez", "Martinez"]
+  const firstName = firstNames[Math.floor(Math.random() * firstNames.length)]
+  const lastName = lastNames[Math.floor(Math.random() * lastNames.length)]
+  return `${firstName} ${lastName}`
 }
 
 function getRandomState() {
